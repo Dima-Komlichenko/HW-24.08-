@@ -1,0 +1,237 @@
+﻿@model IEnumerable<HW_24._08_.Entities.Group>
+
+<h1>Groups</h1>
+
+<p>
+    <button id="btnCreate">Create new</button>
+    <div id="formCreate" hidden>
+        <input type="text" id="Name" />
+        <select id="Teacher" class="form-control"></select>
+        <button id="btnSave">Save</button>
+        <button id="btnCancel">Cancel</button>
+    </div>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Name
+            </th>
+            <th>
+                Teacher
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody id="tbody">
+    </tbody>
+</table>
+
+
+<script>
+
+    function CreateGroupHandler() {
+        let btnCreate = document.getElementById("btnCreate");
+        btnCreate.onclick = function () {
+
+            btnCreate.hidden = true;
+            document.getElementById("formCreate").hidden = false;
+
+            let selectTag = document.getElementById("Teacher");
+
+            fetch("api/groups/teachersfree")
+                .then(response => response.json())
+                .then(teachers => InitSelectTeachers(selectTag, teachers))
+                .catch((ex) => {
+                    console.log("Error: " + ex.message);
+                    console.log("Response: " + ex.response);
+                });
+
+            btnSaveCreatedHandler();
+            let btnCancel = document.getElementById("btnCancel");
+            btnCancel.onclick = function () {
+                HideCreateFormHandler();
+            };
+        }
+    }
+
+    function InitSelectTeachers(selectTag, teachers) {
+        teachers.forEach(teacher => {
+            let option = document.createElement("option");
+            option.value = teacher.id;
+            option.text = teacher.name;
+            selectTag.appendChild(option);
+        });
+    }
+
+    function btnSaveCreatedHandler() {
+        let btnSave = document.getElementById("btnSave");
+        btnSave.onclick = function () {
+
+            let group = {
+                id: 0,
+                name: document.getElementById("Name").value,
+                teacherId: document.getElementById("Teacher").value
+            };
+
+            fetch("api/Groups", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(group),
+
+            })
+                .then(fetchGetGroups)
+                .catch((ex) => {
+                    console.log("Error: " + ex.message);
+                    console.log("Response: " + ex.response);
+                });
+            name.innerText = "";
+
+            HideCreateFormHandler();
+        }
+
+
+    }
+
+    function HideCreateFormHandler() {
+        document.getElementById("Name").value = "";
+        document.getElementById("Teacher").value = "";
+
+        btnCreate.hidden = false;
+        document.getElementById("formCreate").hidden = true;
+
+    }
+
+    CreateGroupHandler();
+
+    function renderGroupsList(groups) {
+        let tbody = document.getElementById("tbody");
+        tbody.innerHTML = "";
+        groups.forEach(group => renderGroup(group));
+    }
+
+    function renderGroup(group) {
+        let tr = document.createElement("tr");
+
+        let tdName = document.createElement("td");
+        let spanName = document.createElement("span");
+        spanName.innerText = group.name;
+        tdName.appendChild(spanName);
+
+        let tdTeacher = document.createElement("td");
+        let spanTeacher = document.createElement("span");
+        spanTeacher.innerText = group.teacher.name;
+        tdTeacher.appendChild(spanTeacher);
+
+        changeGroupHandlers(group, tdName, tdTeacher);
+
+        let tdBtnDelete = document.createElement("button");
+        tdBtnDelete.innerText = "Delete";
+        deleteGroupHandler(group, tdBtnDelete);
+
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdTeacher);
+        tr.appendChild(tdBtnDelete);
+        tbody.appendChild(tr);
+    }
+
+    function deleteGroupHandler(group, tdBtnDelete) {
+        try {
+            tdBtnDelete.onclick = function () {
+
+                fetch("api/groups/" + group.id, {
+                    method: 'DELETE'
+                })
+                    .then(fetchGetGroups)
+                    .catch((ex) => {
+                        console.log("Error: " + ex.message);
+                        console.log("Response: " + ex.response);
+                    });
+            }
+        }
+        catch (e) {
+            console.log("Error: " + e.message);
+            console.log("Response: " + e.response);
+        }
+    }
+
+    function changeGroupHandlers(group, tdName, tdTeacher) {
+        tdName.onclick = function () {
+            changeGroup(group, tdName, tdTeacher)
+        }
+        tdTeacher.onclick = function () {
+            changeGroup(group, tdName, tdTeacher)
+        }
+    }
+
+    function changeGroup(group, tdName, tdTeacher) {
+        tdName.onclick = null;
+        tdTeacher.onclick = null;
+
+        //имя
+        let input = document.createElement("input");
+        input.type = "text";
+        input.value = group.name;
+
+        tdName.removeChild(spanName);
+        tdName.appendChild(input);
+
+        //учитель
+
+        let selectTag = document.createElement("select");
+
+        fetch("api/groups/teachersfree")
+            .then(response => response.json())
+            .then(teachers => InitSelectTeachers(selectTag, teachers.append(group.teacher)))
+            .catch((ex) => {
+                console.log("Error: " + ex.message);
+                console.log("Response: " + ex.response);
+            });
+
+        tdTeacher.removeChild(spanTeacher);
+        tdTeacher.appendChild(selectTag);
+
+        let btnSave = document.createElement("button");
+        btnSave.id = "btnSaveEdit";
+        btnSave.innerText = "Save";
+        btnSave.onclick = function () {
+            group.name = input.value;
+            group.teacher = selectTag.value;
+            saveChangedGroup(group);
+        }
+        tdName.appendChild(btnSave);
+    }
+
+
+    function saveChangedGroup(group) {
+        fetch("api/groups/" + group.id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(group),
+        })
+            .then(fetchGetGroups)
+            .catch((ex) => {
+                console.log("Error: " + ex.message);
+                console.log("Response: " + ex.response);
+            });
+    }
+
+    function fetchGetGroups() {
+        fetch("/api/groups")
+            .then(response => response.json())
+            .then(json => renderGroupsList(json))
+            .catch((ex) => {
+                console.log("Error: " + ex.message);
+                console.log("Response: " + ex.response);
+            });
+    }
+
+    fetchGetGroups();
+</script>

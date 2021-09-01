@@ -1,0 +1,179 @@
+﻿@model IEnumerable<HW_24._08_.Entities.Teacher>
+
+
+<h1>Teachers</h1>
+
+
+<p>
+    <button id="btnCreate">Create new</button>
+    <div id="formCreate" hidden>
+        <input type="text" id="Name" />
+        <button id="btnSave">Save</button>
+        <button id="btnCancel">Cancel</button>
+    </div>
+</p>
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Name
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody id="tbody">
+    </tbody>
+</table>
+
+
+
+<script>
+
+    function CreateTeacherHandler() {
+        let btnCreate = document.getElementById("btnCreate");
+        btnCreate.onclick = function () {
+
+            btnCreate.hidden = true;
+            document.getElementById("formCreate").hidden = false;
+
+            btnSaveCreatedHandler();
+
+            let btnCancel = document.getElementById("btnCancel");
+            btnCancel.onclick = function () {
+                HideCreateFormHandler();
+            };
+        }
+    }
+
+    function btnSaveCreatedHandler() {
+        let btnSave = document.getElementById("btnSave");
+        btnSave.onclick = function () {
+            let inputName = document.getElementById("Name");
+            let teacher = {
+                id: 0,
+                name: inputName.value
+            };
+
+            fetch("api/teachers/", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(teacher),
+
+            })
+                .then(fetchGetTeachers)
+                .catch((ex) => {
+                    console.log("Error: " + ex.message);
+                    console.log("Response: " + ex.response);
+                });
+            name.innerText = "";
+
+            HideCreateFormHandler();
+        }
+    }
+
+    function HideCreateFormHandler() {
+        document.getElementById("Name").value = "";
+
+        btnCreate.hidden = false;
+        document.getElementById("formCreate").hidden = true;
+
+    }
+
+    CreateTeacherHandler();
+
+
+
+    function renderTeachersList(teachers) {
+        let tbody = document.getElementById("tbody");
+        tbody.innerHTML = "";
+        teachers.forEach(teacher => renderTeacher(teacher));
+    }
+
+    function renderTeacher(teacher) {
+        let tr = document.createElement("tr");
+
+        let tdName = document.createElement("td");
+        let span = document.createElement("span");
+        span.innerText = teacher.name;
+        tdName.appendChild(span);
+        changeTeacherHandler(teacher, tdName);
+
+        let tdBtnDelete = document.createElement("button");
+        tdBtnDelete.innerText = "Delete";
+        deleteTeacherHandler(teacher, tdBtnDelete);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdBtnDelete);
+        tbody.appendChild(tr);
+    }
+
+    function changeTeacherHandler(teacher, tdName) {
+        tdName.onclick = function () {
+
+            let input = document.createElement("input");
+            input.type = "text";
+            input.value = teacher.name;
+
+            tdName.removeChild(span);
+            tdName.appendChild(input);
+
+            let btnSave = document.createElement("button");
+            btnSave.id = "btnSaveEdit";
+            btnSave.innerText = "Save";
+            btnSave.onclick = function () {
+                saveChangedTeacherHandler(teacher);
+            }
+            tdName.appendChild(btnSave);
+        }
+    }
+
+    function saveChangedTeacherHandler(teacher) {
+        teacher.name = input.value;
+
+        fetch("api/teachers/" + teacher.id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(teacher),
+        })
+            .then(fetchGetTeachers)
+            .catch((ex) => {
+                console.log("Error: " + ex.message);
+                console.log("Response: " + ex.response);
+            });
+    }
+
+    function deleteTeacherHandler(teacher, tdBtnDelete) {
+        tdBtnDelete.onclick = function () {
+
+            fetch("api/teachers/" + teacher.id, {
+                method: 'DELETE'
+            })
+                .then(fetchGetTeachers)
+                .catch((ex) => {
+                    console.log("Error: " + ex.message);
+                    console.log("Response: " + ex.response);
+                });
+        }
+    }
+
+
+
+    function fetchGetTeachers() {
+        fetch("/api/teachers") // Пошлем запрос GET (по умолчанию) по марштуру на сервер
+            .then(response => response.json())
+            .then(json => renderTeachersList(json))
+            .catch((ex) => { // обрабатываем возможную ошибку
+                console.log("Error: " + ex.message);
+                console.log("Response: " + ex.response);
+            });
+    }
+
+    fetchGetTeachers();
+</script>

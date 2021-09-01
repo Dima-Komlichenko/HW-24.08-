@@ -1,0 +1,249 @@
+﻿@model IEnumerable<HW_24._08_.Entities.Student>
+
+<h1>Students</h1>
+
+<p>
+    <button id="btnCreate">Create new</button>
+    <div id="formCreate" hidden>
+        <input type="text" id="Name" />
+        <select id="Groups" class="form-control"></select>
+        <button id="btnSave">Save</button>
+        <button id="btnCancel">Cancel</button>
+    </div>
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Name
+            </th>
+            <th>
+                Group
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody id="tbody">
+    </tbody>
+</table>
+
+
+
+<script>
+
+    function CreateStudentHandler() {
+        let btnCreate = document.getElementById("btnCreate");
+        btnCreate.onclick = function () {
+
+            btnCreate.hidden = true;
+            document.getElementById("formCreate").hidden = false;
+
+            let selectTag = document.getElementById("Groups");
+
+            fetch("api/students/groups")
+                .then(response => response.json())
+                .then(groups => InitSelectGroups(selectTag, groups))
+                .catch((ex) => {
+                    console.log("Error: " + ex.message);
+                    console.log("Response: " + ex.response);
+                });
+
+            btnSaveCreatedHandler();
+            let btnCancel = document.getElementById("btnCancel");
+            btnCancel.onclick = function () {
+                HideCreateFormHandler();
+            };
+        }
+    }
+
+    function InitSelectGroups(selectTag, groups) {
+        groups.forEach(group => {
+            let option = document.createElement("option");
+            option.value = group.id;
+            option.text = group.name;
+            selectTag.appendChild(option);
+        });
+    }
+
+    function btnSaveCreatedHandler() {
+        let btnSave = document.getElementById("btnSave");
+        btnSave.onclick = function () {
+
+            let student = {
+                id: 0,
+                name: document.getElementById("Name").value,
+                groupId: document.getElementById("Groups").value
+            };
+            fetch("api/Students", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(student),
+
+            })
+                .then(fetchGetStudents)
+                .catch((ex) => {
+                    console.log("Error: " + ex.message);
+                    console.log("Response: " + ex.response);
+                });
+            name.innerText = "";
+
+            HideCreateFormHandler();
+        }
+
+
+    }
+
+    function HideCreateFormHandler() {
+        document.getElementById("Name").value = "";
+        document.getElementById("Groups").value = "";
+
+        btnCreate.hidden = false;
+        document.getElementById("formCreate").hidden = true;
+
+    }
+
+    CreateStudentHandler();
+
+    function renderStudentsList(students) {
+        let tbody = document.getElementById("tbody");
+        tbody.innerHTML = "";
+        students.forEach(student => renderStudent(student));
+    }
+
+    function renderStudent(student) {
+        let tr = document.createElement("tr");
+
+        let tdName = document.createElement("td");
+        let spanName = document.createElement("span");
+        spanName.id = "spanName";
+        spanName.innerText = student.name;
+        tdName.appendChild(spanName);
+
+        let tdGroup = document.createElement("td");
+        let spanGroup = document.createElement("span");
+        spanGroup.id = "spanTeacher";
+        spanGroup.innerText = student.group.name;
+
+
+        tdGroup.appendChild(spanGroup);
+
+
+        changeStudentHandlers(student, tdName, tdGroup);
+
+        let tdBtnDelete = document.createElement("button");
+        tdBtnDelete.innerText = "Delete";
+        tdBtnDelete.id = "btnDelete";
+        deleteStudentHandler(student, tdBtnDelete);
+
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdGroup);
+        tr.appendChild(tdBtnDelete);
+        tbody.appendChild(tr);
+    }
+
+    function deleteStudentHandler(student, tdBtnDelete) {
+        try {
+            tdBtnDelete.onclick = function () {
+
+                fetch("api/students/" + student.id, {
+                    method: 'DELETE'
+                })
+                    .then(fetchGetStudents)
+                    .catch((ex) => {
+                        console.log("Error: " + ex.message);
+                        console.log("Response: " + ex.response);
+                    });
+            }
+        }
+        catch (e) {
+            console.log("Error: " + e.message);
+            console.log("Response: " + e.response);
+        }
+    }
+
+    function changeStudentHandlers(student, tdName, tdGroup) {
+        tdName.onclick = function () {
+            changeStudent(student, tdName, tdGroup)
+        }
+        tdGroup.onclick = function () {
+            changeStudent(student, tdName, tdGroup)
+        }
+    }
+
+    function changeStudent(student, tdName, tdGroup) {
+        try {
+            tdName.onclick = null;
+            tdGroup.onclick = null;
+
+            //имя
+            let input = document.createElement("input");
+            input.type = "text";
+            input.value = student.name;
+
+            tdName.removeChild(spanName)
+            tdName.appendChild(input);
+
+            //группа
+            let selectTag = document.createElement("select");
+
+            fetch("api/students/groups")
+                .then(response => response.json())
+                .then(groups => InitSelectGroups(selectTag, groups/*.append(student.group)*/))
+                .catch((ex) => {
+                    console.log("Error: " + ex.message);
+                    console.log("Response: " + ex.response);
+                });
+
+            tdGroup.removeChild(spanTeacher);
+            tdGroup.appendChild(selectTag);
+
+            let btnSave = document.createElement("button");
+            btnSave.id = "btnSaveEdit";
+            btnSave.innerText = "Save";
+            tdGroup.appendChild(btnSave);
+            btnSave.onclick = function () {
+                student.name = input.value;
+                student.groupId = selectTag.value;
+                saveChangedStudent(student);
+            }
+
+        }
+        catch (e) {
+            console.log("Error: " + e.message);
+            console.log("Response: " + e.response);
+        }
+    }
+
+    function saveChangedStudent(student) {
+        fetch("api/students/" + student.id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(student),
+        })
+            .then(fetchGetStudents)
+            .catch((ex) => {
+                console.log("Error: " + ex.message);
+                console.log("Response: " + ex.response);
+            });
+    }
+
+
+    function fetchGetStudents() {
+        fetch("/api/students")
+            .then(response => response.json())
+            .then(json => renderStudentsList(json))
+            .catch((ex) => {
+                console.log("Error: " + ex.message);
+                console.log("Response: " + ex.response);
+            });
+    }
+
+    fetchGetStudents();
+</script>
